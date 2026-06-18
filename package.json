@@ -1,0 +1,32 @@
+{
+  "name": "pi-thinking-preset",
+  "version": "0.1.0",
+  "description": "Remember pi thinking levels per model.",
+  "keywords": [
+    "pi-package",
+    "pi-extension",
+    "thinking"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/iSolitudinis/pi-thinking-preset.git"
+  },
+  "bugs": {
+    "url": "https://github.com/iSolitudinis/pi-thinking-preset/issues"
+  },
+  "homepage": "https://github.com/iSolitudinis/pi-thinking-preset#readme",
+  "type": "module",
+  "files": [
+    "index.ts",
+    "README.md"
+  ],
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*"
+  },
+  "pi": {
+    "extensions": [
+      "./index.ts"
+    ]
+  }
+}
