@@ -7,11 +7,6 @@ import { getAgentDir } from "@earendil-works/pi-coding-agent";
 type ThinkingLevel = ReturnType<ExtensionAPI["getThinkingLevel"]>;
 type ModelRef = { provider: string; id: string };
 
-type PendingInternalChange = {
-  modelKey: string;
-  level: ThinkingLevel;
-};
-
 const DEFAULT_THINKING_LEVEL: ThinkingLevel = "medium";
 const PRESETS_PATH = join(getAgentDir(), "thinking-presets.json");
 
@@ -55,86 +50,51 @@ function savePresets(presets: Record<string, ThinkingLevel>) {
   writeFileSync(PRESETS_PATH, JSON.stringify(presets, null, 2) + "\n");
 }
 
-function getKey(model: ModelRef) {
+function getModelKey(model: ModelRef) {
   return `${model.provider}/${model.id}`;
 }
 
 export default function (pi: ExtensionAPI) {
-  let initialized = false;
   let currentModelKey: string | undefined;
-  let pendingInternalChange: PendingInternalChange | undefined;
-  let pendingClearTimer: ReturnType<typeof setTimeout> | undefined;
-
-  function clearPendingInternalChange() {
-    pendingInternalChange = undefined;
-    if (pendingClearTimer !== undefined) {
-      clearTimeout(pendingClearTimer);
-      pendingClearTimer = undefined;
-    }
-  }
-
-  function deferPendingInternalChangeClear(change: PendingInternalChange) {
-    if (pendingClearTimer !== undefined) {
-      clearTimeout(pendingClearTimer);
-    }
-    pendingClearTimer = setTimeout(() => {
-      if (pendingInternalChange === change) {
-        pendingInternalChange = undefined;
-      }
-      pendingClearTimer = undefined;
-    }, 0);
-  }
 
   pi.on("session_start", (_event, ctx) => {
-    clearPendingInternalChange();
-    initialized = ctx.mode === "tui";
-    currentModelKey = initialized && ctx.model ? getKey(ctx.model) : undefined;
+    currentModelKey =
+      ctx.mode === "tui" && ctx.model ? getModelKey(ctx.model) : undefined;
   });
 
   pi.on("session_shutdown", () => {
-    clearPendingInternalChange();
-    initialized = false;
     currentModelKey = undefined;
   });
 
   pi.on("model_select", (event, ctx) => {
     if (ctx.mode !== "tui") return;
 
-    const key = getKey(event.model);
+    const modelKey = getModelKey(event.model);
 
     // Initial model selection and session restore must preserve pi's state.
-    if (
-      !initialized ||
-      event.source === "restore" ||
-      event.previousModel === undefined
-    ) {
-      currentModelKey = key;
+    if (event.source === "restore" || event.previousModel === undefined) {
+      currentModelKey = modelKey;
       return;
     }
 
     // Ignore duplicate notifications for the already active model.
-    if (currentModelKey === key) return;
-    currentModelKey = key;
+    if (currentModelKey === modelKey) return;
+    currentModelKey = modelKey;
 
     const presets = loadPresets();
-    const storedLevel = presets[key];
+    const storedLevel = presets[modelKey];
     const requestedLevel = storedLevel ?? DEFAULT_THINKING_LEVEL;
     const level = clampThinkingLevel(event.model, requestedLevel);
 
     // Persist the effective level, including a clamp or a first-time default.
     if (storedLevel !== level) {
-      presets[key] = level;
+      presets[modelKey] = level;
       savePresets(presets);
     }
 
-    // pi may emit thinking_level_select both for its model-switch adjustment
-    // and for this extension's adjustment. Neither is a user preference.
-    const change: PendingInternalChange = { modelKey: key, level };
-    pendingInternalChange = change;
     if (pi.getThinkingLevel() !== level) {
       pi.setThinkingLevel(level);
     }
-    deferPendingInternalChangeClear(change);
   });
 
   pi.on("thinking_level_select", (event, ctx) => {
@@ -143,24 +103,16 @@ export default function (pi: ExtensionAPI) {
     const model = ctx.model;
     if (!model) return;
 
-    const key = getKey(model);
+    const modelKey = getModelKey(model);
 
-    // A model-switch event can arrive before model_select. The active model
-    // key still points at the previous model in that case.
-    if (currentModelKey !== key) return;
-
-    if (pendingInternalChange?.modelKey === key) {
-      // Ignore pi's automatic level and the level applied by this extension.
-      // Keep waiting if the automatic level differs from our target.
-      if (pendingInternalChange.level === event.level) {
-        clearPendingInternalChange();
-      }
-      return;
-    }
+    // Ignore model-switch events that arrive before model_select, and stale
+    // events whose level has already been replaced by a newer change.
+    if (currentModelKey !== modelKey) return;
+    if (event.level !== pi.getThinkingLevel()) return;
 
     const presets = loadPresets();
-    if (presets[key] !== event.level) {
-      presets[key] = event.level;
+    if (presets[modelKey] !== event.level) {
+      presets[modelKey] = event.level;
       savePresets(presets);
     }
   });
