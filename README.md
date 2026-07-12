@@ -6,7 +6,9 @@ Remember pi thinking levels per model.
 
 `pi-thinking-preset` stores the selected thinking level for each model and restores it when you switch back to that model.
 
-Presets are saved to `thinking-presets.json` in your pi agent directory.
+The extension only acts in TUI mode. It preserves pi's initial thinking level, including a level restored from a session or supplied with `--thinking`. Presets are applied only after a manual model switch through `/model` or Ctrl+P.
+
+Presets are saved to `thinking-presets.json` in your pi agent directory. When a model without a preset is reached by a model switch, it starts from `medium`, clamped to the levels supported by that model. The effective level is saved as the model's preset.
 
 ## Install
 
