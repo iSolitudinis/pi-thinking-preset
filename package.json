@@ -1,6 +1,6 @@
 {
   "name": "pi-thinking-preset",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Remember pi thinking levels per model.",
   "keywords": [
     "pi-package",
@@ -22,7 +22,6 @@
     "README.md"
   ],
   "peerDependencies": {
-    "@earendil-works/pi-ai": "*",
     "@earendil-works/pi-coding-agent": "*"
   },
   "pi": {
