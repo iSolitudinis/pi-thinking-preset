@@ -1,5 +1,12 @@
 # pi-thinking-preset
 
+> [!WARNING]
+> **Deprecated**
+>
+> Pi 0.84.3 added native per-model thinking level defaults through `/settings`, so this extension is no longer necessary for most users.
+>
+> Existing installations can continue to use this extension, but it is no longer maintained. New users should use Pi's built-in settings instead.
+
 Remember pi thinking levels per model.
 
 ## What it does
